@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db, transaction } from "./db";
 import type { MetricRow } from "./types";
 
 /** Insert or update daily rows. Returns how many rows were written. */
@@ -10,11 +10,10 @@ export function upsertMetrics(clientId: number, rows: MetricRow[]): number {
        spend = excluded.spend, impressions = excluded.impressions, clicks = excluded.clicks,
        leads = excluded.leads, revenue = excluded.revenue`,
   );
-  const run = db().transaction((items: MetricRow[]) => {
-    for (const r of items) stmt.run({ client_id: clientId, ...r });
-    return items.length;
+  return transaction(() => {
+    for (const r of rows) stmt.run({ client_id: clientId, ...r });
+    return rows.length;
   });
-  return run(rows);
 }
 
 export function dataCoverage(clientId: number): { first: string | null; last: string | null; rows: number; days: number } {

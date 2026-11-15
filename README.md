@@ -26,7 +26,7 @@ npm run seed                 # optional: demo client with synthetic numbers
 npm run dev                  # http://localhost:3000
 ```
 
-Requires Node.js 22 or newer.
+Requires Node.js 22.13 or newer. The database uses Node's built-in SQLite, so there is no native module to compile. Node 22 prints an "ExperimentalWarning: SQLite" line on start; it can be ignored.
 
 Without `ANTHROPIC_API_KEY` the app still runs: reports use rule-based text, draft generation is disabled.
 

@@ -4,7 +4,6 @@ import type { NextConfig } from "next";
 // so component caching is switched off on purpose.
 const nextConfig: NextConfig = {
   cacheComponents: false,
-  serverExternalPackages: ["better-sqlite3"],
   // CSV exports are uploaded through a Server Action.
   experimental: { serverActions: { bodySizeLimit: "10mb" } },
   turbopack: {

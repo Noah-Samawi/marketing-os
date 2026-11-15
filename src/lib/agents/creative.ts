@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { forbiddenTerms, getBrain, isFilled } from "../brain";
 import { checkCopy } from "../compliance";
-import { db, logActivity } from "../db";
+import { db, logActivity, transaction } from "../db";
 import { byAd, latestPeriod } from "../kpi";
 import { completeStructured, llmConfigured } from "../llm";
 import type { Client } from "../types";
@@ -69,13 +69,12 @@ export function saveDrafts(client: Client, drafts: Draft[], source: "llm" | "dem
     `INSERT INTO creatives (client_id, batch_id, angle, hook, primary_text, headline, description, cta, visual_concept, format, flags_json, source)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  const run = db().transaction(() => {
+  transaction(() => {
     for (const d of drafts) {
       const flags = checkCopy(d, forbidden);
       stmt.run(client.id, batch, d.angle ?? "", d.hook ?? "", d.primary_text ?? "", d.headline ?? "", d.description ?? "", d.cta ?? "", d.visual_concept ?? "", d.format ?? "static", JSON.stringify(flags), source);
     }
   });
-  run();
   return batch;
 }
 

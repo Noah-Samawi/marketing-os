@@ -1,6 +1,7 @@
-import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
+// Node's built-in SQLite: no native module to compile on install.
+import { DatabaseSync } from "node:sqlite";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS clients (
@@ -96,19 +97,18 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 `;
 
-let instance: Database.Database | null = null;
+let instance: DatabaseSync | null = null;
 
 export function dbPath(): string {
   return process.env.DB_PATH || path.join(process.cwd(), "data", "marketing.db");
 }
 
-export function db(): Database.Database {
+export function db(): DatabaseSync {
   if (instance) return instance;
   const file = dbPath();
   if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
-  const conn = new Database(file);
-  conn.pragma("journal_mode = WAL");
-  conn.pragma("foreign_keys = ON");
+  const conn = new DatabaseSync(file);
+  conn.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   conn.exec(SCHEMA);
   instance = conn;
   return conn;
@@ -118,6 +118,20 @@ export function db(): Database.Database {
 export function resetDb(): void {
   instance?.close();
   instance = null;
+}
+
+/** Runs fn inside one transaction: either every write lands or none does. */
+export function transaction<T>(fn: () => T): T {
+  const conn = db();
+  conn.exec("BEGIN IMMEDIATE");
+  try {
+    const result = fn();
+    conn.exec("COMMIT");
+    return result;
+  } catch (e) {
+    conn.exec("ROLLBACK");
+    throw e;
+  }
 }
 
 export function logActivity(clientId: number, actor: "human" | "agent" | "system", action: string, detail = ""): void {

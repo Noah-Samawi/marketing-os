@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
-    "better-sqlite3": "^13.2.0",
     "next": "16.4.6",
     "papaparse": "^5.7.1",
     "react": "19.3.0",
@@ -24,7 +23,6 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
@@ -36,5 +34,8 @@
     "typescript": "^5",
     "vitest": "^5.1.0"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  }
 }
