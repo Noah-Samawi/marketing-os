@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
+// Internal tool reading a local SQLite file: every page is rendered per request,
+// so component caching is switched off on purpose.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  cacheComponents: false,
+  serverExternalPackages: ["better-sqlite3"],
+  // CSV exports are uploaded through a Server Action.
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   turbopack: {
     rules: {
       "*.css": {

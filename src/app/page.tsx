@@ -1,69 +1,91 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Flash } from "@/components/Flash";
+import { listClients } from "@/lib/clients";
+import { money } from "@/lib/format";
+import { latestPeriod, totals } from "@/lib/kpi";
+import { llmConfigured, llmModel } from "@/lib/llm";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const clients = listClients();
+  const metaToken = Boolean(process.env.META_ACCESS_TOKEN);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      <Flash sp={sp} />
+      <div className="flex items-center justify-between mb-4">
+        <h1>Clients</h1>
+        <Link href="/clients/new" className="btn btn-primary">
+          New client
+        </Link>
+      </div>
+
+      {clients.length === 0 ? (
+        <div className="card">
+          <p>No clients yet.</p>
+          <p className="muted small mt-1">
+            Create your first client, or run <code>npm run seed</code> to load a demo client with synthetic numbers.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      ) : (
+        <div className="card" style={{ padding: 0 }}>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Channel</th>
+                <th className="r">Spend, last 7 days</th>
+                <th className="r">Leads</th>
+                <th className="r">CPL</th>
+                <th>Data until</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map((c) => {
+                const p = latestPeriod(c.id);
+                const k = p ? totals(c.id, p.current) : null;
+                return (
+                  <tr key={c.id}>
+                    <td>
+                      <Link href={`/clients/${c.id}`} className="font-semibold">
+                        {c.name}
+                      </Link>{" "}
+                      {c.is_demo ? <span className="badge badge-warn">Demo data</span> : null}
+                      <div className="small muted">{c.industry}</div>
+                    </td>
+                    <td>{c.channel}</td>
+                    <td className="r num">{k ? money(k.spend, c.currency, c.language) : "–"}</td>
+                    <td className="r num">{k ? Math.round(k.leads) : "–"}</td>
+                    <td className="r num">{k ? money(k.cpl, c.currency, c.language) : "–"}</td>
+                    <td className="num">{p ? p.current.end : <span className="muted">no data</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </main>
+      )}
+
+      <div className="card mt-6">
+        <h2>System status</h2>
+        <ul className="mt-2 space-y-1 small">
+          <li>
+            <span className={`badge ${llmConfigured() ? "badge-good" : "badge-warn"}`}>{llmConfigured() ? "on" : "off"}</span> AI agents{" "}
+            <span className="muted">
+              {llmConfigured() ? `(model ${llmModel()})` : "— set ANTHROPIC_API_KEY in .env.local. Until then reports are rule-based and draft generation is disabled."}
+            </span>
+          </li>
+          <li>
+            <span className={`badge ${metaToken ? "badge-good" : ""}`}>{metaToken ? "on" : "off"}</span> Meta API sync{" "}
+            <span className="muted">{metaToken ? "(read-only insights)" : "— optional. CSV import works without it."}</span>
+          </li>
+          <li>
+            <span className="badge badge-accent">always</span> Nothing is published from this app. Approved drafts are exported and uploaded by you.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
