@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { generateReport } from "@/lib/agents/analyst";
 import { decideCreative, generateCreatives } from "@/lib/agents/creative";
+import { decideAdGroup, generateAdGroups, updateAdGroup } from "@/lib/agents/search";
 import { BRAIN, saveBrain, type BrainKind } from "@/lib/brain";
 import { createClient, deleteClient, getClient, updateClient, type ClientInput } from "@/lib/clients";
 import { CHECKLIST } from "@/lib/compliance";
@@ -11,6 +12,8 @@ import { parseMetricsCsv } from "@/lib/importers/csv";
 import { fetchMetaInsights } from "@/lib/importers/meta";
 import { addDays } from "@/lib/kpi";
 import { upsertMetrics } from "@/lib/metrics";
+import { lines, parseKeyword, type Keyword } from "@/lib/search";
+import { parseSearchTermsCsv, replaceSearchTerms } from "@/lib/searchTerms";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const numOrNull = (f: FormData, k: string) => {
@@ -145,4 +148,55 @@ export async function toggleChecklistAction(f: FormData) {
     .run(client.id, key, done);
   logActivity(client.id, "human", done ? "checklist_done" : "checklist_undone", key);
   redirect(`/clients/${client.id}/checklist`);
+}
+
+export async function generateAdGroupsAction(f: FormData) {
+  const client = requireClient(f);
+  const path = `/clients/${client.id}/search`;
+  const count = Math.min(Math.max(Number(f.get("count")) || 2, 1), 4);
+  let n = 0;
+  try {
+    n = (await generateAdGroups(client, count, str(f, "brief"))).count;
+  } catch (e) {
+    go(path, "err", e instanceof Error ? e.message : "Generation failed.");
+  }
+  go(path, "ok", `${n} ad group(s) proposed. Check lengths and keywords before approving.`);
+}
+
+export async function updateAdGroupAction(f: FormData) {
+  const client = requireClient(f);
+  const id = Number(f.get("adGroupId"));
+  updateAdGroup(client.id, id, {
+    theme: str(f, "theme"),
+    keywords: lines(String(f.get("keywords") ?? "")).map(parseKeyword).filter((k): k is Keyword => k !== null),
+    negatives: lines(String(f.get("negatives") ?? "")),
+    headlines: lines(String(f.get("headlines") ?? "")),
+    descriptions: lines(String(f.get("descriptions") ?? "")),
+    path1: str(f, "path1"),
+    path2: str(f, "path2"),
+    final_url: str(f, "final_url"),
+  });
+  redirect(`/clients/${client.id}/search?ok=${encodeURIComponent("Saved.")}#ag-${id}`);
+}
+
+export async function decideAdGroupAction(f: FormData) {
+  const client = requireClient(f);
+  const status = str(f, "status");
+  if (status !== "approved" && status !== "rejected" && status !== "draft") go(`/clients/${client.id}/search`, "err", "Unknown status.");
+  decideAdGroup(client.id, Number(f.get("adGroupId")), status as "approved" | "rejected" | "draft", str(f, "note"));
+  redirect(`/clients/${client.id}/search`);
+}
+
+export async function importSearchTermsAction(f: FormData) {
+  const client = requireClient(f);
+  const path = `/clients/${client.id}/search`;
+  const file = f.get("file");
+  if (!(file instanceof File) || file.size === 0) go(path, "err", "Choose a CSV file.");
+  const res = parseSearchTermsCsv(await (file as File).text());
+  if (res.error) go(path, "err", res.error);
+  if (!res.rows.length) go(path, "err", "The file has no search terms.");
+  const n = replaceSearchTerms(client.id, res.rows);
+  logActivity(client.id, "human", "search_terms_imported", `${n} terms`);
+  const noConv = !("conversions" in res.mapped) ? " No conversions column was found, so every term counts as not converting." : "";
+  redirect(`${path}?${noConv ? "warn" : "ok"}=${encodeURIComponent(`${n} search terms imported (replaces the previous report).${noConv}`)}#terms`);
 }

@@ -13,6 +13,7 @@ See `AGENTS.md` for the Next.js version notes and `README.md` for the overview.
 ## Working on the code
 - Run `npm test`, `npm run typecheck` and `npm run lint` before saying a change works.
 - Changing a threshold in `rules.ts` changes real recommendations: update the tests and say so.
+- Google limits live in `RSA` in `src/lib/search.ts`. Never shorten ad text silently: flag it and let the human edit.
 - The Meta connector is unverified against a live account until the README says otherwise.
 
 ## Operating for a client

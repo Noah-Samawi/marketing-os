@@ -20,14 +20,14 @@ const ALIASES: Record<string, string[]> = {
 const norm = (h: string) => h.replace(/^﻿/, "").trim().toLowerCase();
 
 /** A header matches an alias exactly, or with a trailing unit such as "(EUR)". */
-function matches(header: string, alias: string): boolean {
+export function matches(header: string, alias: string): boolean {
   const h = norm(header);
   return h === alias || (h.startsWith(alias + " (") && !alias.includes("("));
 }
 
-function mapColumns(headers: string[]): Record<string, number> {
+export function mapColumns(headers: string[], aliasMap: Record<string, string[]> = ALIASES): Record<string, number> {
   const map: Record<string, number> = {};
-  for (const [field, aliases] of Object.entries(ALIASES)) {
+  for (const [field, aliases] of Object.entries(aliasMap)) {
     for (const alias of aliases) {
       const idx = headers.findIndex((h) => matches(h, alias));
       if (idx >= 0) {

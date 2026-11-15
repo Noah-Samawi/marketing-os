@@ -12,7 +12,8 @@
     "report": "tsx scripts/report.ts",
     "creatives": "tsx scripts/creatives.ts",
     "import": "tsx scripts/import-csv.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "search": "tsx scripts/search.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

@@ -1,7 +1,10 @@
 import "./_env";
 import { saveBrain } from "../src/lib/brain";
 import { createClient, deleteClient, getClientBySlug, getClient } from "../src/lib/clients";
+import fs from "node:fs";
 import { saveDrafts } from "../src/lib/agents/creative";
+import { saveAdGroups } from "../src/lib/agents/search";
+import { parseSearchTermsCsv, replaceSearchTerms } from "../src/lib/searchTerms";
 import { addDays } from "../src/lib/kpi";
 import { upsertMetrics } from "../src/lib/metrics";
 import type { MetricRow } from "../src/lib/types";
@@ -106,5 +109,38 @@ saveDrafts(
   ],
   "demo",
 );
+
+saveAdGroups(
+  client,
+  [
+    {
+      theme: "Wallbox Installation",
+      keywords: [
+        { text: "wallbox installation", match: "phrase" },
+        { text: "wallbox installieren lassen", match: "phrase" },
+        { text: "wallbox elektriker", match: "exact" },
+        { text: "wallbox montage kosten", match: "phrase" },
+      ],
+      negatives: ["selber", "anleitung", "gebraucht", "ausbildung", "jobs"],
+      headlines: [
+        "Wallbox Installation",
+        "Wallbox installieren lassen",
+        "Festpreis nach Vor-Ort-Termin",
+        "Anmeldung beim Netzbetreiber",
+        "Vor-Ort-Termin anfragen",
+        "Wallbox Installation im Rhein-Main-Gebiet", // too long on purpose: shows the length check
+      ],
+      descriptions: [
+        "Wir installieren Ihre Wallbox und übernehmen die Anmeldung beim Netzbetreiber.",
+        "Wir prüfen Ihren Hausanschluss vor Ort und nennen Ihnen danach einen Festpreis.",
+      ],
+      path1: "wallbox",
+      path2: "installation",
+      final_url: "https://example.com/wallbox",
+    },
+  ],
+  "demo",
+);
+replaceSearchTerms(id, parseSearchTermsCsv(fs.readFileSync("samples/google-search-terms-example.csv", "utf8")).rows);
 
 console.log(`Demo client created (id ${id}) with ${rows.length} daily rows up to ${end}.`);

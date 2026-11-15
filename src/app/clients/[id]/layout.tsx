@@ -11,7 +11,8 @@ const TABS = [
   { href: "/knowledge", label: "Knowledge" },
   { href: "/data", label: "Data" },
   { href: "/reports", label: "Reports" },
-  { href: "/creatives", label: "Creatives" },
+  { href: "/creatives", label: "Social ads" },
+  { href: "/search", label: "Search ads" },
   { href: "/settings", label: "Settings" },
 ];
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
 export function SubmitButton({ children, pendingText, className = "btn btn-primary" }: { children: React.ReactNode; pendingText?: string; className?: string }) {
@@ -41,5 +42,25 @@ export function ConfirmButton({ children, message, className = "btn btn-danger" 
     >
       {children}
     </button>
+  );
+}
+
+/** Textarea with one item per line and a live check of each line against a character limit. */
+export function LimitedLines({ name, label, defaultValue, limit, rows = 6 }: { name: string; label: string; defaultValue: string; limit?: number; rows?: number }) {
+  const [value, setValue] = useState(defaultValue);
+  const items = value.split("\n").map((l) => l.trim()).filter(Boolean);
+  const over = limit ? items.filter((l) => l.length > limit) : [];
+  return (
+    <label className="field">
+      <span>
+        {label} <span className="muted" style={{ fontWeight: 400 }}>· {items.length} line{items.length === 1 ? "" : "s"}{limit ? `, max ${limit} characters each` : ""}</span>
+      </span>
+      <textarea className="input" name={name} rows={rows} value={value} onChange={(e) => setValue(e.target.value)} spellCheck={false} />
+      {over.length > 0 && (
+        <span className="small" style={{ color: "var(--bad)", fontWeight: 400, marginTop: 4 }} aria-live="polite">
+          {over.length} too long: {over.map((l) => `"${l}" (${l.length})`).join(", ")}
+        </span>
+      )}
+    </label>
   );
 }

@@ -80,6 +80,41 @@ CREATE TABLE IF NOT EXISTS creatives (
   decided_at TEXT
 );
 
+-- Google Search: one row is a proposed ad group (keywords + responsive search ad).
+CREATE TABLE IF NOT EXISTS search_adgroups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  batch_id TEXT NOT NULL,
+  theme TEXT NOT NULL DEFAULT '',
+  keywords_json TEXT NOT NULL DEFAULT '[]',
+  negatives_json TEXT NOT NULL DEFAULT '[]',
+  headlines_json TEXT NOT NULL DEFAULT '[]',
+  descriptions_json TEXT NOT NULL DEFAULT '[]',
+  path1 TEXT NOT NULL DEFAULT '',
+  path2 TEXT NOT NULL DEFAULT '',
+  final_url TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'draft',
+  note TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'llm',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at TEXT
+);
+
+-- Latest imported search terms report. A new import replaces the previous one.
+CREATE TABLE IF NOT EXISTS search_terms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  term TEXT NOT NULL,
+  campaign TEXT NOT NULL DEFAULT '',
+  adgroup TEXT NOT NULL DEFAULT '',
+  impressions INTEGER NOT NULL DEFAULT 0,
+  clicks INTEGER NOT NULL DEFAULT 0,
+  cost REAL NOT NULL DEFAULT 0,
+  conversions REAL NOT NULL DEFAULT 0,
+  imported_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_search_terms_client ON search_terms (client_id);
+
 CREATE TABLE IF NOT EXISTS checklist (
   client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   key TEXT NOT NULL,

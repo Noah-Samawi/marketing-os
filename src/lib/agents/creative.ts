@@ -130,8 +130,8 @@ export async function generateCreatives(client: Client, count = 5, brief = ""): 
 }
 
 export function decideCreative(clientId: number, creativeId: number, status: "approved" | "rejected" | "draft", note: string): void {
-  db()
+  const res = db()
     .prepare("UPDATE creatives SET status = ?, note = ?, decided_at = CASE WHEN ? = 'draft' THEN NULL ELSE datetime('now') END WHERE id = ? AND client_id = ?")
     .run(status, note, status, creativeId, clientId);
-  logActivity(clientId, "human", `creative_${status}`, `#${creativeId}${note ? `: ${note}` : ""}`);
+  if (res.changes > 0) logActivity(clientId, "human", `creative_${status}`, `#${creativeId}${note ? `: ${note}` : ""}`);
 }
